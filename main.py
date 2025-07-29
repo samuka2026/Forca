@@ -27,6 +27,7 @@ jogos_ativos = {}             # {chat_id: dados do jogo atual}
 pontuacao_diaria = {}         # {nome: pontos}
 historico_palavras = []       # palavras usadas recentemente
 ultimas_mensagens = {}        # controle de mensagens por chat
+baloes_para_apagar = {}  # {chat_id: [msg_id, msg_id...]}
 
 # ✅ FUNÇÕES DE SUPORTE
 
@@ -70,6 +71,10 @@ def enviar_mensagem(chat_id, texto, markup=None):
     msg = bot.send_message(chat_id, texto, parse_mode="Markdown", reply_markup=markup)
     ultimas_mensagens.setdefault(chat_id, []).append(msg.message_id)
 
+    # Só salvar balões de atualização (não salvar se tiver botão, ou seja, se for balão final)
+    if markup is None:
+        baloes_para_apagar.setdefault(chat_id, []).append(msg.message_id)
+
 def enviar_balao_atualizado(chat_id):
     jogo = jogos_ativos[chat_id]
     texto = f"🎯 *Desafio em Andamento!*\n\n"
@@ -79,6 +84,18 @@ def enviar_balao_atualizado(chat_id):
     for nome, rest in jogo['tentativas'].items():
         texto += f"- {nome}: {rest} restantes\n"
     enviar_mensagem(chat_id, texto)
+    apagar_baloes_antigos(chat_id)
+
+
+def apagar_baloes_antigos(chat_id, manter=1):
+    ids = baloes_para_apagar.get(chat_id, [])
+    apagar = ids[:-manter]
+    for msg_id in apagar:
+        try:
+            bot.delete_message(chat_id, msg_id)
+        except:
+            pass
+    baloes_para_apagar[chat_id] = ids[-manter:]
 
 def finalizar_rodada(chat_id):
     jogo = jogos_ativos[chat_id]
