@@ -184,10 +184,6 @@ def letras_handler(message):
         bot.send_message(chat_id, f"💀 {nome} errou a letra *{letra.upper()}*!")
         bot.send_chat_action(chat_id, "typing")
 
-    # Se tempo passou de 10 min, finaliza
-    if (datetime.now() - jogo["inicio"]).total_seconds() > TEMPO_ENTRE_RODADAS:
-        finalizar_rodada(chat_id)
-
 # ✅ BOTÃO DE NOVO DESAFIO
 @bot.callback_query_handler(func=lambda call: call.data == "novo_desafio")
 def callback_novo(call):
