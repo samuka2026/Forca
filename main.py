@@ -195,19 +195,19 @@ def letras_handler(message):
         return  # Não desconta tentativa nem pontua
 
     if letra in jogo["palavra"]:
-    jogo["letras_certas"].append(letra)
-    jogo["acertos"].setdefault(nome, []).append(letra)
-    time.sleep(2)
-    bot.send_message(chat_id, f"🏆 {nome} acertou a letra *{letra.upper()}*!")
-    bot.send_chat_action(chat_id, "typing")
-    pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
-else:
-    jogo["letras_erradas"].append(letra)
-    jogo["tentativas"][nome] -= 1
-    jogo["erros"].setdefault(nome, []).append(letra)
-    time.sleep(1)
-    bot.send_message(chat_id, f"💀 {nome} errou a letra *{letra.upper()}*!")
-    bot.send_chat_action(chat_id, "typing")
+        jogo["letras_certas"].append(letra)
+        jogo["acertos"].setdefault(nome, []).append(letra)
+        time.sleep(2)
+        bot.send_message(chat_id, f"🏆 {nome} acertou a letra *{letra.upper()}*!")
+        bot.send_chat_action(chat_id, "typing")
+        pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
+    else:
+        jogo["letras_erradas"].append(letra)
+        jogo["tentativas"][nome] -= 1
+        jogo["erros"].setdefault(nome, []).append(letra)
+        time.sleep(1)
+        bot.send_message(chat_id, f"💀 {nome} errou a letra *{letra.upper()}*!")
+        bot.send_chat_action(chat_id, "typing")
 
 # Atualiza balão após acerto ou erro
 enviar_balao_atualizado(chat_id)
