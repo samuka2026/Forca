@@ -180,7 +180,7 @@ def letras_handler(message):
     if letra in jogo["palavra"]:
         jogo["letras_certas"].append(letra)
         jogo["acertos"].setdefault(nome, []).append(letra)
-        time.sleep(5)  # ⏳ Aguarda 5 segundos antes de responder
+        time.sleep(2)  # ⏳ Aguarda 2 segundos antes de responder
         bot.send_message(chat_id, f"🏆 {nome} acertou a letra *{letra.upper()}*!")
         bot.send_chat_action(chat_id, "typing")
         pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
@@ -189,7 +189,7 @@ def letras_handler(message):
         jogo["letras_erradas"].append(letra)
         jogo["tentativas"][nome] -= 1
         jogo["erros"].setdefault(nome, []).append(letra)
-        time.sleep(5)  # ⏳ Aguarda 5 segundos antes de responder
+        time.sleep(1)  # ⏳ Aguarda 1 segundos antes de responder
         bot.send_message(chat_id, f"💀 {nome} errou a letra *{letra.upper()}*!")
         bot.send_chat_action(chat_id, "typing")
 
