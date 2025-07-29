@@ -48,7 +48,13 @@ def escolher_palavra():
     return palavra.lower()
 
 def formatar_palavra(palavra, certas):
-    return ' '.join([letra if letra in certas else '_' for letra in palavra])
+    exibicao = ''
+    for letra in palavra:
+        if letra in certas:
+            exibicao += f'{letra.upper()} '
+        else:
+            exibicao += '_ '
+    return exibicao.strip()
 
 def gerar_ranking():
     if not pontuacao_diaria:
