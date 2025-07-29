@@ -19,7 +19,7 @@ bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
 # ✅ PARÂMETROS DO JOGO
-TEMPO_ENTRE_RODADAS = 30  # 10 minutos
+TEMPO_ENTRE_RODADAS = 120  # 10 minutos
 HORARIO_RANKING_FINAL = "23:30"
 
 # ✅ VARIÁVEIS DE CONTROLE
@@ -53,7 +53,7 @@ def formatar_palavra(palavra, certas):
         if letra in certas:
             exibicao += f'{letra.upper()} '
         else:
-            exibicao += '_ '
+            exibicao += '• '
     return exibicao.strip()
 
 def gerar_ranking():
