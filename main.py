@@ -180,11 +180,38 @@ def ranking_diario():
 
 threading.Thread(target=ranking_diario, daemon=True).start()
 
-# === LOOP DO BOT ===
-print("🤖 Bot da Forca rodando...")
-while True:
-    try:
-        bot.polling()
-    except Exception as e:
-        print("Erro:", e)
-        time.sleep(5)
+# ✅ Integração com Flask para Render Web Service
+from flask import Flask, request
+
+app = Flask(__name__)
+RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
+
+@app.route(f"/{API_TOKEN}", methods=["POST"])
+def webhook():
+    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return "OK", 200
+
+@app.route("/")
+def home():
+    url = f"{RENDER_URL}/{API_TOKEN}"
+    if bot.get_webhook_info().url != url:
+        bot.remove_webhook()
+        bot.set_webhook(url=url)
+    return "Bot da Forca online!", 200
+
+# ✅ Mantém o bot vivo no Render
+def manter_vivo():
+    import requests
+    while True:
+        try:
+            requests.get(RENDER_URL)
+        except:
+            pass
+        time.sleep(600)  # A cada 10 minutos
+
+# ✅ Início da aplicação no Render
+if __name__ == "__main__":
+    import threading
+    threading.Thread(target=manter_vivo).start()
+    port = int(os.getenv("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
