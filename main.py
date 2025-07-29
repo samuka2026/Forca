@@ -74,7 +74,8 @@ def enviar_balao_atualizado(chat_id):
     jogo = jogos_ativos[chat_id]
     texto = f"🎯 *Desafio em Andamento!*\n\n"
     texto += f"🔠 Palavra: {formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n"
-    texto += f"❤️ Tentativas:\n"
+    texto += f"💡 Dica: {jogo['dica']}\n"  # ✅ Adicione esta linha
+    texto += f"💣 Tentativas:\n"
     for nome, rest in jogo['tentativas'].items():
         texto += f"- {nome}: {rest} restantes\n"
     enviar_mensagem(chat_id, texto)
@@ -94,7 +95,7 @@ def finalizar_rodada(chat_id):
             pontos = pontuacao_diaria.get(nome, 0)
             texto += f"- {nome} (+1 ponto) — Letras: {', '.join(letras).upper()} — Total: {pontos + 0} ponto(s)\n"
     else:
-        texto += "\n😢 Ninguém acertou letras.\n"
+        texto += "\n💔 Ninguém acertou letras.\n"
 
     if erros:
         texto += "\n❌ Erraram:\n"
@@ -115,6 +116,7 @@ def iniciar_rodada(chat_id):
     palavra, dica = escolher_palavra()
     dados = {
         "palavra": palavra,
+        "dica": dica,
         "letras_certas": [],
         "letras_erradas": [],
         "tentativas": {},         # nome: tentativas restantes
@@ -163,13 +165,12 @@ def letras_handler(message):
     jogo = jogos_ativos[chat_id]
 
     if nome not in jogo["tentativas"]:
-        jogo["tentativas"][nome] = 2
-
-    if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
-        return  # Letra já usada no geral
-
+        jogo["tentativas"][nome] = 3
+   
     if jogo["tentativas"][nome] <= 0:
-        return  # Sem chances
+        bot.send_message(chat_id, f"❌ {nome}, você esgotou suas tentativas!")
+        enviar_balao_atualizado(chat_id)
+        return
 
     # ✅ Verifica se a letra já foi usada na rodada
     if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
