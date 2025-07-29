@@ -73,7 +73,7 @@ def enviar_mensagem(chat_id, texto, markup=None):
 def enviar_balao_atualizado(chat_id):
     jogo = jogos_ativos[chat_id]
     texto = f"🎯 *Desafio em Andamento!*\n\n"
-    texto += f"🔠 Palavra: {formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n"
+    texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n"
     texto += f"💡 Dica: {jogo['dica']}\n"  # ✅ Adicione esta linha
     texto += f"💣 Tentativas:\n"
     for nome, rest in jogo['tentativas'].items():
@@ -127,7 +127,7 @@ def iniciar_rodada(chat_id):
     jogos_ativos[chat_id] = dados
 
     texto = f"🪢 *Jogo da Forca Iniciado!*\n\n"
-    texto += f"🔠 Palavra: {formatar_palavra(palavra, [])}\n"
+    texto += f"🔠 Palavra:\n{formatar_palavra(palavra, [])}\n"
     texto += f"💡 Dica: {dica}\n"
     texto += f"🎯 Envie uma *letra* para tentar!"
 
