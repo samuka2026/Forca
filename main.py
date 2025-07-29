@@ -14,7 +14,7 @@ RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
 bot = telebot.TeleBot(API_TOKEN)
 
 # === CONFIGURAÇÕES ===
-TEMPO_ENTRE_RODADAS = 600  # 10 minutos
+TEMPO_ENTRE_RODADAS = 10  # 10 minutos
 HORARIO_RANKING_FINAL = "23:30"
 GRUPOS_PERMITIDOS = []  # Vazio significa sem restrição
 
