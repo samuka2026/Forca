@@ -183,7 +183,7 @@ def letras_handler(message):
 
     if nome not in jogo["tentativas"]:
         jogo["tentativas"][nome] = 3
-   
+
     if jogo["tentativas"][nome] <= 0:
         bot.send_message(chat_id, f"❌ {nome}, você esgotou suas tentativas!")
         enviar_balao_atualizado(chat_id)
@@ -192,7 +192,7 @@ def letras_handler(message):
     # ✅ Verifica se a letra já foi usada na rodada
     if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
         bot.send_message(chat_id, f"⚠️ A letra *{letra.upper()}* já foi enviada por outro jogador.")
-        return  # Não desconta tentativa nem pontua
+        return
 
     if letra in jogo["palavra"]:
         jogo["letras_certas"].append(letra)
@@ -209,12 +209,12 @@ def letras_handler(message):
         bot.send_message(chat_id, f"💀 {nome} errou a letra *{letra.upper()}*!")
         bot.send_chat_action(chat_id, "typing")
 
-# Atualiza balão após acerto ou erro
-enviar_balao_atualizado(chat_id)
+    # ✅ Atualiza balão após acerto ou erro
+    enviar_balao_atualizado(chat_id)
 
-# Verifica se todos os jogadores esgotaram as tentativas
-if all(t <= 0 for t in jogo["tentativas"].values()):
-    finalizar_rodada(chat_id)
+    # ✅ Verifica se todos os jogadores esgotaram as tentativas
+    if all(t <= 0 for t in jogo["tentativas"].values()):
+        finalizar_rodada(chat_id)
 
 # ✅ BOTÃO DE NOVO DESAFIO
 @bot.callback_query_handler(func=lambda call: call.data == "novo_desafio")
