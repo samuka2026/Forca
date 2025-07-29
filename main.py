@@ -47,8 +47,8 @@ def escolher_palavra():
     historico_palavras.append(palavra)
     return palavra.lower()
 
-def formatar_palavra(palavra, letras_certas):
-    return ' '.join([letra.upper() if letra in letras_certas else '⬜' for letra in palavra])
+def formatar_palavra(palavra, certas):
+    return ' '.join([letra if letra in certas else '_' for letra in palavra])
 
 def gerar_ranking():
     if not pontuacao_diaria:
