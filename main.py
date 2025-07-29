@@ -39,13 +39,14 @@ def carregar_palavras():
 
 def escolher_palavra():
     palavras = carregar_palavras()
-    candidatas = list(set(palavras) - set(historico_palavras[-60:]))
+    candidatas = list(set(tuple(p.items()) for p in palavras) - set(tuple(p.items()) for p in historico_palavras[-60:]))
     if not candidatas:
         historico_palavras.clear()
-        candidatas = palavras
-    palavra = random.choice(candidatas)
-    historico_palavras.append(palavra)
-    return palavra.lower()
+        candidatas = [tuple(p.items()) for p in palavras]
+    escolha = random.choice(candidatas)
+    escolha_dict = dict(escolha)
+    historico_palavras.append(escolha_dict)
+    return escolha_dict["palavra"].lower(), escolha_dict["dica"]
 
 def formatar_palavra(palavra, certas):
     exibicao = ''
@@ -111,7 +112,7 @@ def finalizar_rodada(chat_id):
 
 # ✅ INICIAR NOVO JOGO
 def iniciar_rodada(chat_id):
-    palavra = escolher_palavra()
+    palavra, dica = escolher_palavra()
     dados = {
         "palavra": palavra,
         "letras_certas": [],
@@ -125,7 +126,7 @@ def iniciar_rodada(chat_id):
 
     texto = f"🪢 *Jogo da Forca Iniciado!*\n\n"
     texto += f"🔠 Palavra: {formatar_palavra(palavra, [])}\n"
-    texto += f"💡 Dica: {len(palavra)} letras\n"
+    texto += f"💡 Dica: {dica}\n"
     texto += f"🎯 Envie uma *letra* para tentar!"
 
     enviar_mensagem(chat_id, texto)
