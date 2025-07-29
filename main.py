@@ -1,4 +1,5 @@
-# ✅ BOT DA FORCA - VERSÃO AJUSTADA PARA RENDER WEB SERVICE COM FLASK
+# ✅ BOT DA FORCA - RODANDO EM RENDER COM FLASK E WEBHOOK
+# Funções: Jogo da Forca, ranking diário às 23h30, rodadas automáticas, sem repetir palavras por 3 dias
 
 import telebot
 import json
@@ -9,16 +10,18 @@ import os
 from datetime import datetime, timedelta
 from flask import Flask, request
 
+# ✅ Configurações do bot e ambiente
 API_TOKEN = os.getenv("TELEGRAM_TOKEN")
 RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
 bot = telebot.TeleBot(API_TOKEN)
+app = Flask(__name__)
 
-# === CONFIGURAÇÕES ===
-TEMPO_ENTRE_RODADAS = 10  # 10 minutos
+# ✅ Parâmetros da lógica do jogo
+TEMPO_ENTRE_RODADAS = 600  # 10 minutos = 600 segundos
 HORARIO_RANKING_FINAL = "23:30"
-GRUPOS_PERMITIDOS = []  # Vazio significa sem restrição
+GRUPOS_PERMITIDOS = []  # Deixe vazio para permitir em todos os grupos
 
-# === VARIÁVEIS DE CONTROLE ===
+# ✅ Variáveis globais de controle
 usuarios_jogo = {}
 pontuacao_diaria = {}
 historico_palavras = []
@@ -27,7 +30,7 @@ ultima_rodada = {}
 rodada_ativa = {}
 rodada_dados = {}
 
-# === FUNÇÕES ===
+# ✅ Função para carregar palavras do arquivo .json
 def carregar_palavras():
     try:
         with open("palavras.json", "r", encoding="utf-8") as f:
@@ -35,6 +38,7 @@ def carregar_palavras():
     except:
         return []
 
+# ✅ Escolhe uma nova palavra, evitando repetições recentes
 def escolher_palavra():
     palavras = carregar_palavras()
     candidatas = list(set(palavras) - set(historico_palavras[-60:]))
@@ -47,13 +51,16 @@ def escolher_palavra():
     historico_palavras.append(palavra)
     return palavra.lower()
 
+# ✅ Formata a palavra com _ e letras reveladas
 def formatar_palavra(palavra, certas):
     return ' '.join([letra if letra in certas else '_' for letra in palavra])
 
+# ✅ Envia mensagem e armazena o ID para limpar depois
 def enviar_mensagem(chat_id, texto):
     msg = bot.send_message(chat_id, texto, parse_mode="Markdown")
     mensagens_anteriores.setdefault(chat_id, []).append(msg.message_id)
 
+# ✅ Apaga mensagens antigas, mantendo apenas os 2 últimos balões
 def apagar_mensagens(chat_id):
     msgs = mensagens_anteriores.get(chat_id, [])
     for msg_id in msgs[:-2]:
@@ -63,33 +70,36 @@ def apagar_mensagens(chat_id):
             pass
     mensagens_anteriores[chat_id] = msgs[-2:]
 
+# ✅ Gera o ranking parcial ou final
 def gerar_ranking():
     if not pontuacao_diaria:
-        return "\ud83d\udcca Ninguém pontuou hoje."
+        return "📊 Ninguém pontuou hoje."
     ranking = sorted(pontuacao_diaria.items(), key=lambda x: x[1], reverse=True)
-    texto = "\n\n\ud83c\udfc6 *Ranking Parcial:*\n"
+    texto = "\n\n🏆 *Ranking Parcial:*\n"
     for i, (user, pontos) in enumerate(ranking, 1):
         texto += f"{i}. {user}: {pontos} ponto(s)\n"
     return texto
 
+# ✅ Envia balão com resumo da rodada e ranking
 def enviar_balao_resposta(chat_id, palavra, acertos, erros):
-    texto = f"\ud83d\udce2 *Fim da Rodada!*\n\n\u2705 Palavra: *{palavra.upper()}*\n"
+    texto = f"📢 *Fim da Rodada!*\n\n✅ Palavra: *{palavra.upper()}*\n"
     if acertos:
-        texto += "\n\ud83d\udc51 Vencedores:\n"
+        texto += "\n👑 Vencedores:\n"
         for nome, letras in acertos.items():
             pontos = pontuacao_diaria.get(nome, 0)
             texto += f"- {nome} (+1 ponto) — Letras: {', '.join(letras)} — Total: {pontos} ponto(s)\n"
     else:
-        texto += "\n\ud83d\ude1e Ninguém acertou.\n"
+        texto += "\n😢 Ninguém acertou.\n"
 
     if erros:
-        texto += "\n\u274c Tentativas Erradas:\n"
+        texto += "\n❌ Tentativas Erradas:\n"
         for nome, letras in erros.items():
             texto += f"- {nome} — Letras erradas: {', '.join(letras)}\n"
 
     texto += gerar_ranking()
     enviar_mensagem(chat_id, texto)
 
+# ✅ Inicia nova pergunta e configura dados da rodada
 def enviar_nova_pergunta(chat_id):
     apagar_mensagens(chat_id)
     palavra = escolher_palavra()
@@ -110,9 +120,27 @@ def enviar_nova_pergunta(chat_id):
         "erros": erros
     }
 
-    texto = f"\ud83c\udfaf *Novo Desafio!*\n\n\ud83d\udd20 Palavra: {formatar_palavra(palavra, letras_certas)}\n\ud83d\udce2 Dica: Palavra com {len(palavra)} letras.\n\nDigite uma letra ou a palavra."
+    texto = f"🎯 *Novo Desafio!*\n\n🔠 Palavra: {formatar_palavra(palavra, letras_certas)}\n📢 Dica: Palavra com {len(palavra)} letras.\n\nDigite uma letra ou a palavra."
     enviar_mensagem(chat_id, texto)
 
+# ✅ Executa a rodada com temporizador e repete após 30s
+def iniciar_rodada(chat_id):
+    def rodada():
+        time.sleep(TEMPO_ENTRE_RODADAS)
+        dados = rodada_dados.get(chat_id, {})
+        if not dados:
+            return
+        palavra = dados.get("palavra")
+        acertos = dados.get("acertos", {})
+        erros = dados.get("erros", {})
+        enviar_balao_resposta(chat_id, palavra, acertos, erros)
+        rodada_ativa[chat_id] = False
+        time.sleep(30)
+        enviar_nova_pergunta(chat_id)
+        iniciar_rodada(chat_id)
+    threading.Thread(target=rodada).start()
+
+# ✅ Processa todas as mensagens do grupo
 def processar_resposta(m):
     chat_id = m.chat.id
     if not rodada_ativa.get(chat_id):
@@ -141,45 +169,44 @@ def processar_resposta(m):
 
         palavra_atual = formatar_palavra(dados["palavra"], dados["letras_certas"])
         tent = dados["tentativas"][nome]
-        emoji = "\u2705" if texto in dados["palavra"] else "\u274c"
-        enviar_mensagem(chat_id, f"{emoji} {nome}: '{texto}'\n{palavra_atual}\n\u2764\ufe0f Tentativas restantes: {tent}")
+        emoji = "✅" if texto in dados["palavra"] else "❌"
+        enviar_mensagem(chat_id, f"{emoji} {nome}: '{texto}'\n{palavra_atual}\n❤️ Tentativas restantes: {tent}")
 
-# === COMANDO /forca ===
+# ✅ Comando /forca
 @bot.message_handler(commands=['forca'])
 def handle_forca(message):
     chat_id = message.chat.id
     if GRUPOS_PERMITIDOS and chat_id not in GRUPOS_PERMITIDOS:
         return
     if datetime.now() - ultima_rodada.get(chat_id, datetime.min) < timedelta(seconds=TEMPO_ENTRE_RODADAS):
-        bot.reply_to(message, f"\u23f3 Aguarde {TEMPO_ENTRE_RODADAS//60} minutos para novo desafio.")
+        bot.reply_to(message, f"⏳ Aguarde {TEMPO_ENTRE_RODADAS//60} minutos para novo desafio.")
         return
     enviar_nova_pergunta(chat_id)
+    iniciar_rodada(chat_id)
 
-# === COMANDO /start ===
+# ✅ Comando /start
 @bot.message_handler(commands=['start'])
 def handle_start(message):
-    bot.reply_to(message, "\ud83d\udc4b Envie /forca para começar o desafio da forca!")
+    bot.reply_to(message, "👋 Envie /forca para começar o desafio da forca!")
 
-# === TODAS AS MENSAGENS ===
+# ✅ Captura todas as mensagens para tratar como resposta
 @bot.message_handler(func=lambda m: True)
 def todas_respostas(m):
     processar_resposta(m)
 
-# === RANKING DIÁRIO ===
+# ✅ Ranking diário às 23:30
 def ranking_diario():
     while True:
         agora = datetime.now().strftime("%H:%M")
         if agora == HORARIO_RANKING_FINAL:
             for chat_id in rodada_ativa:
-                enviar_mensagem(chat_id, "\ud83d\udcc6 *Ranking Final do Dia*\n" + gerar_ranking())
+                enviar_mensagem(chat_id, "📆 *Ranking Final do Dia*\n" + gerar_ranking())
             pontuacao_diaria.clear()
         time.sleep(60)
 
 threading.Thread(target=ranking_diario, daemon=True).start()
 
-# === FLASK WEBHOOK PARA RENDER ===
-app = Flask(__name__)
-
+# ✅ ROTA FLASK PARA WEBHOOK (Render)
 @app.route(f"/{API_TOKEN}", methods=["POST"])
 def webhook():
     bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
@@ -193,6 +220,7 @@ def home():
         bot.set_webhook(url=url)
     return "Bot da Forca online!", 200
 
+# ✅ Mantém o bot acordado no Render (ping a cada 10 minutos)
 def manter_vivo():
     import requests
     while True:
@@ -202,6 +230,7 @@ def manter_vivo():
             pass
         time.sleep(600)
 
+# ✅ Inicializa o servidor Flask (Render Web Service)
 if __name__ == "__main__":
     threading.Thread(target=manter_vivo).start()
     port = int(os.getenv("PORT", 10000))
