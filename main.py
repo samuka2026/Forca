@@ -130,6 +130,13 @@ def iniciar_rodada(chat_id):
 
     enviar_mensagem(chat_id, texto)
 
+    # ⏳ Thread que finaliza automaticamente após TEMPO_ENTRE_RODADAS
+    def finalizar_depois():
+        time.sleep(TEMPO_ENTRE_RODADAS)
+        if chat_id in jogos_ativos:
+            finalizar_rodada(chat_id)
+    threading.Thread(target=finalizar_depois, daemon=True).start()
+
 # ✅ RECEBE COMANDO /forca
 @bot.message_handler(commands=["forca"])
 def forca_handler(message):
