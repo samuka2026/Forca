@@ -17,7 +17,7 @@ bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
 # ✅ Parâmetros da lógica do jogo
-TEMPO_ENTRE_RODADAS = 600  # 10 minutos = 600 segundos
+TEMPO_ENTRE_RODADAS = 10  # 10 minutos = 600 segundos
 HORARIO_RANKING_FINAL = "23:30"
 GRUPOS_PERMITIDOS = []  # Deixe vazio para permitir em todos os grupos
 
