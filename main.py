@@ -19,7 +19,7 @@ bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
 # ✅ PARÂMETROS DO JOGO
-TEMPO_ENTRE_RODADAS = 120  # 10 minutos
+TEMPO_ENTRE_RODADAS = 300  # 10 minutos
 HORARIO_RANKING_FINAL = "23:30"
 
 # ✅ VARIÁVEIS DE CONTROLE
@@ -170,6 +170,11 @@ def letras_handler(message):
 
     if jogo["tentativas"][nome] <= 0:
         return  # Sem chances
+
+    # ✅ Verifica se a letra já foi usada na rodada
+    if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
+        bot.send_message(chat_id, f"⚠️ A letra *{letra.upper()}* já foi enviada por outro jogador.")
+        return  # Não desconta tentativa nem pontua
 
     if letra in jogo["palavra"]:
         jogo["letras_certas"].append(letra)
