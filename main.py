@@ -88,9 +88,9 @@ def enviar_balao_atualizado(chat_id):
 
     enviar_mensagem(chat_id, texto)
 
-    # ✅ Apagar balões antigos após 2 segundos, sem travar o bot
+    # ✅ Apagar balões antigos após 1 segundo, sem travar o bot
     def apagar_depois():
-        time.sleep(2)
+        time.sleep(1)
         apagar_baloes_antigos(chat_id)
 
     threading.Thread(target=apagar_depois, daemon=True).start()
