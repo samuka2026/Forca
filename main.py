@@ -28,6 +28,8 @@ pontuacao_diaria = {}         # {nome: pontos}
 historico_palavras = []       # palavras usadas recentemente
 ultimas_mensagens = {}        # controle de mensagens por chat
 baloes_para_apagar = {}  # {chat_id: [msg_id, msg_id...]}
+ultimo_jogo_timestamp = {}  # {chat_id: datetime do último jogo}
+INTERVALO_MIN_ENTRE_JOGOS = 1200  # segundos (20 minutos). Altere se quiser
 
 # ✅ FUNÇÕES DE SUPORTE
 
@@ -84,8 +86,8 @@ def enviar_balao_atualizado(chat_id):
     for nome, rest in jogo['tentativas'].items():
         texto += f"- {nome}: {rest} restantes\n"
     enviar_mensagem(chat_id, texto)
+    time.sleep(2)  # Espera 2 segundos antes de apagar
     apagar_baloes_antigos(chat_id)
-
 
 def apagar_baloes_antigos(chat_id, manter=1):
     ids = baloes_para_apagar.get(chat_id, [])
@@ -147,6 +149,7 @@ def iniciar_rodada(chat_id):
     texto += f"🔠 Palavra:\n{formatar_palavra(palavra, [])}\n"
     texto += f"💡 Dica: {dica}\n"
     texto += f"🎯 Envie uma *letra* para tentar!"
+    ultimo_jogo_timestamp[chat_id] = datetime.now()
 
     enviar_mensagem(chat_id, texto)
 
@@ -161,9 +164,21 @@ def iniciar_rodada(chat_id):
 @bot.message_handler(commands=["forca"])
 def forca_handler(message):
     chat_id = message.chat.id
+
+    agora = datetime.now()
+    ultimo_jogo = ultimo_jogo_timestamp.get(chat_id)
+
+    # Se já tem jogo em andamento, bloqueia
     if chat_id in jogos_ativos:
-        bot.reply_to(message, "⚠️ Já há um jogo em andamento. Aguarde o término.")
+        bot.reply_to(message, "⚠️ Um jogo já está em andamento. Aguarde terminar.")
         return
+
+    # Se tentou iniciar antes do tempo limite
+    if ultimo_jogo and (agora - ultimo_jogo).total_seconds() < INTERVALO_MIN_ENTRE_JOGOS:
+        minutos_restantes = int((INTERVALO_MIN_ENTRE_JOGOS - (agora - ultimo_jogo).total_seconds()) / 60)
+        bot.reply_to(message, f"⏱️ Aguarde {minutos_restantes} minuto(s) para novo desafio ou finalize a rodada atual.")
+        return
+
     iniciar_rodada(chat_id)
 
 # ✅ TRATA LETRAS DIGITADAS
