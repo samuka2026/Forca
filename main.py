@@ -19,7 +19,7 @@ bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
 # ✅ PARÂMETROS DO JOGO
-TEMPO_ENTRE_RODADAS = 300  # 5 minutos
+TEMPO_ENTRE_RODADAS =   # 5 minutos
 HORARIO_RANKING_FINAL = "23:30"
 
 # ✅ VARIÁVEIS DE CONTROLE
@@ -29,7 +29,7 @@ historico_palavras = []       # palavras usadas recentemente
 ultimas_mensagens = {}        # controle de mensagens por chat
 baloes_para_apagar = {}  # {chat_id: [msg_id, msg_id...]}
 ultimo_jogo_timestamp = {}  # {chat_id: datetime do último jogo}
-INTERVALO_MIN_ENTRE_JOGOS = 600  # segundos (10 minutos). Altere se quiser
+INTERVALO_MIN_ENTRE_JOGOS = 300  # segundos (5 minutos). Altere se quiser
 
 # ✅ FUNÇÕES DE SUPORTE
 
