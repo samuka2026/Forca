@@ -197,7 +197,7 @@ def letras_handler(message):
     if letra in jogo["palavra"]:
         jogo["letras_certas"].append(letra)
         jogo["acertos"].setdefault(nome, []).append(letra)
-        time.sleep(2)
+        time.sleep(3) # 3 segundos 
         bot.send_message(chat_id, f"🏆 {nome} acertou a letra *{letra.upper()}*!")
         bot.send_chat_action(chat_id, "typing")
         pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
