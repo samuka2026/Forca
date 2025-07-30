@@ -81,13 +81,19 @@ def enviar_balao_atualizado(chat_id):
     jogo = jogos_ativos[chat_id]
     texto = f"🎯 *Desafio em Andamento!*\n\n"
     texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n"
-    texto += f"💡 Dica: {jogo['dica']}\n"  # ✅ Adicione esta linha
+    texto += f"💡 Dica: {jogo['dica']}\n"
     texto += f"💣 Tentativas:\n"
     for nome, rest in jogo['tentativas'].items():
         texto += f"- {nome}: {rest} restantes\n"
+
     enviar_mensagem(chat_id, texto)
-    time.sleep(2)  # Espera 2 segundos antes de apagar
-    apagar_baloes_antigos(chat_id)
+
+    # ✅ Apagar balões antigos após 2 segundos, sem travar o bot
+    def apagar_depois():
+        time.sleep(2)
+        apagar_baloes_antigos(chat_id)
+
+    threading.Thread(target=apagar_depois, daemon=True).start()
 
 def apagar_baloes_antigos(chat_id, manter=1):
     ids = baloes_para_apagar.get(chat_id, [])
