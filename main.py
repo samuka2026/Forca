@@ -214,6 +214,10 @@ def letras_handler(message):
         if texto == jogo["palavra"]:
             bot.send_message(chat_id, f"🎉 {nome} adivinhou a palavra inteira *{texto.upper()}*! (+2 pontos)")
             pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 2
+            # Adiciona todas as letras à lista de corretas para o balão final
+            for letra in set(jogo["palavra"]):
+                if letra not in jogo["letras_certas"]:
+                    jogo["letras_certas"].append(letra)
             finalizar_rodada(chat_id)
         else:
             jogo["tentativas"][nome] -= 1
