@@ -1,6 +1,6 @@
 # ✅ BOT DA FORCA — VERSÃO COM REAÇÕES E INTERAÇÃO INTELIGENTE
 # Desenvolvido para rodar no Render como Web Service (Flask)
-# Palavras só são descobertas letra por letra. Sem tentar palavra inteira.
+# Palavras só são descobertas letra por letra. Agora também é possível adivinhar a palavra inteira.
 
 import os
 import time
@@ -72,24 +72,38 @@ def enviar_mensagem(chat_id, texto, markup=None):
     msg = bot.send_message(chat_id, texto, parse_mode="Markdown", reply_markup=markup)
     ultimas_mensagens.setdefault(chat_id, []).append(msg.message_id)
 
-    # Só salvar balões de atualização (não salvar se tiver botão, ou seja, se for balão final)
     if markup is None:
         baloes_para_apagar.setdefault(chat_id, []).append(msg.message_id)
 
 def enviar_balao_atualizado(chat_id):
     jogo = jogos_ativos[chat_id]
     texto = f"🎯 *Desafio em Andamento!*\n\n"
-    texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_descobertas'])}\n"
-    texto += f"💡 Dica: {jogo['dica']}\n"
-    texto += f"💣 Tentativas restantes:\n"
+    
+    # Palavra com letras certas
+    texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n"
+    texto += f"💡 Dica: {jogo['dica']}\n\n"
+
+    # Tentativas restantes por jogador
+    texto += "💣 Tentativas Restantes:\n"
     for nome, rest in jogo['tentativas'].items():
-        # Mostrar também as letras erradas do jogador
-        letras_erradas = ', '.join(jogo['erros'].get(nome, [])).upper() if jogo['erros'].get(nome) else "nenhuma"
-        texto += f"- {nome}: {rest} restantes — Letras erradas: {letras_erradas}\n"
+        texto += f"- {nome}: {rest} tentativa(s)\n"
+    
+    # Letras erradas por jogador
+    if jogo.get("erros"):
+        texto += "\n❌ Letras e Palavras Erradas:\n"
+        for nome, erros in jogo['erros'].items():
+            letras_erradas = [e.upper() for e in erros if len(e) == 1]
+            palavras_erradas = [e.upper() for e in erros if len(e) > 1]
+            linha = f"- {nome}:"
+            if letras_erradas:
+                linha += f" Letras: {', '.join(letras_erradas)}"
+            if palavras_erradas:
+                linha += f" Palavras: {', '.join(palavras_erradas)}"
+            texto += linha + "\n"
 
     enviar_mensagem(chat_id, texto)
 
-    # ✅ Apagar balões antigos após 1 segundo, sem travar o bot
+    # Apagar balões antigos após 1 segundo
     def apagar_depois():
         time.sleep(1)
         apagar_baloes_antigos(chat_id)
@@ -126,11 +140,10 @@ def finalizar_rodada(chat_id):
     if erros:
         texto += "\n❌ Erraram:\n"
         for nome, letras in erros.items():
-            texto += f"- {nome} — Letras erradas: {', '.join(letras).upper()}\n"
+            texto += f"- {nome} — Letras/Palavras erradas: {', '.join(letras).upper()}\n"
 
     texto += ranking
 
-    # Botão "Novo Desafio"
     markup = telebot.types.InlineKeyboardMarkup()
     markup.add(telebot.types.InlineKeyboardButton("🔁 Novo Desafio", callback_data="novo_desafio"))
 
@@ -145,10 +158,9 @@ def iniciar_rodada(chat_id):
         "dica": dica,
         "letras_certas": [],
         "letras_erradas": [],
-        "letras_descobertas": set(),
         "tentativas": {},         # nome: tentativas restantes
         "acertos": {},            # nome: letras certas
-        "erros": {},              # nome: letras erradas
+        "erros": {},              # nome: letras/ palavras erradas
         "inicio": datetime.now()
     }
     jogos_ativos[chat_id] = dados
@@ -161,7 +173,6 @@ def iniciar_rodada(chat_id):
 
     enviar_mensagem(chat_id, texto)
 
-    # ⏳ Thread que finaliza automaticamente após TEMPO_ENTRE_RODADAS
     def finalizar_depois():
         time.sleep(TEMPO_ENTRE_RODADAS)
         if chat_id in jogos_ativos:
@@ -176,12 +187,10 @@ def forca_handler(message):
     agora = datetime.now()
     ultimo_jogo = ultimo_jogo_timestamp.get(chat_id)
 
-    # Se já tem jogo em andamento, bloqueia
     if chat_id in jogos_ativos:
         bot.reply_to(message, "⚠️ Um jogo já está em andamento. Aguarde terminar.")
         return
 
-    # Se tentou iniciar antes do tempo limite
     if ultimo_jogo and (agora - ultimo_jogo).total_seconds() < INTERVALO_MIN_ENTRE_JOGOS:
         minutos_restantes = int((INTERVALO_MIN_ENTRE_JOGOS - (agora - ultimo_jogo).total_seconds()) / 60)
         bot.reply_to(message, f"⏱️ Aguarde {minutos_restantes} minuto(s) para novo desafio ou finalize a rodada atual.")
@@ -189,6 +198,7 @@ def forca_handler(message):
 
     iniciar_rodada(chat_id)
 
+# ✅ TRATA LETRAS E PALAVRAS DIGITADAS
 @bot.message_handler(func=lambda m: True)
 def letras_handler(message):
     chat_id = message.chat.id
@@ -199,11 +209,9 @@ def letras_handler(message):
     nome = message.from_user.first_name
     jogo = jogos_ativos[chat_id]
 
-    # Inicializa tentativas do jogador se não existir
     if nome not in jogo["tentativas"]:
         jogo["tentativas"][nome] = 3
 
-    # Se jogador já zerou tentativas
     if jogo["tentativas"][nome] <= 0:
         bot.send_message(chat_id, f"❌ {nome}, você esgotou suas tentativas!")
         enviar_balao_atualizado(chat_id)
@@ -214,7 +222,6 @@ def letras_handler(message):
         if texto == jogo["palavra"]:
             bot.send_message(chat_id, f"🎉 {nome} adivinhou a palavra inteira *{texto.upper()}*! (+2 pontos)")
             pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 2
-            # Adiciona todas as letras à lista de corretas para o balão final
             for letra in set(jogo["palavra"]):
                 if letra not in jogo["letras_certas"]:
                     jogo["letras_certas"].append(letra)
@@ -230,7 +237,6 @@ def letras_handler(message):
     if len(texto) == 1 and texto.isalpha():
         letra = texto[0]
 
-        # Se letra já usada
         if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
             bot.send_message(chat_id, f"⚠️ {nome}, essa letra já foi escolhida.")
             return
@@ -246,10 +252,8 @@ def letras_handler(message):
             jogo["erros"].setdefault(nome, []).append(letra)
             bot.send_message(chat_id, f"❌ {nome}, a letra *{letra.upper()}* não existe. Perdeu uma tentativa.")
 
-        # Atualiza balão mostrando letras descobertas, erros e tentativas restantes
         enviar_balao_atualizado(chat_id)
 
-        # Verifica se todas as letras foram descobertas
         if set(jogo["palavra"]).issubset(set(jogo["letras_certas"])):
             bot.send_message(chat_id, f"🎉 Parabéns, a palavra era *{jogo['palavra'].upper()}*!")
             finalizar_rodada(chat_id)
