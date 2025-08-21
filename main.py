@@ -204,6 +204,12 @@ def letras_handler(message):
     if nome not in jogo["tentativas"]:
         jogo["tentativas"][nome] = 3
 
+    # Se jogador já zerou tentativas
+    if jogo["tentativas"][nome] <= 0:
+        bot.send_message(chat_id, f"❌ {nome}, você esgotou suas tentativas!")
+        enviar_balao_atualizado(chat_id)
+        return
+
     # 🎯 Tentativa de palavra inteira
     if len(texto) > 1 and texto.isalpha():
         if texto == jogo["palavra"]:
@@ -212,6 +218,7 @@ def letras_handler(message):
             finalizar_rodada(chat_id)
         else:
             jogo["tentativas"][nome] -= 1
+            jogo["erros"].setdefault(nome, []).append(texto)
             bot.send_message(chat_id, f"❌ {nome} errou a palavra *{texto.upper()}*! Perdeu uma tentativa.")
             enviar_balao_atualizado(chat_id)
         return
@@ -220,6 +227,7 @@ def letras_handler(message):
     if len(texto) == 1 and texto.isalpha():
         letra = texto[0]
 
+        # Se letra já usada
         if letra in jogo["letras_descobertas"] or letra in jogo["letras_erradas"]:
             bot.send_message(chat_id, f"⚠️ {nome}, essa letra já foi escolhida.")
             return
@@ -235,11 +243,11 @@ def letras_handler(message):
             jogo["erros"].setdefault(nome, []).append(letra)
             bot.send_message(chat_id, f"❌ {nome}, a letra *{letra.upper()}* não existe. Perdeu uma tentativa.")
 
+        # Atualiza balão mostrando letras descobertas, erros e tentativas restantes
         enviar_balao_atualizado(chat_id)
 
         # Verifica se todas as letras foram descobertas
-        palavra_set = set(jogo["palavra"])
-        if palavra_set.issubset(jogo["letras_descobertas"]):
+        if set(jogo["palavra"]).issubset(jogo["letras_descobertas"]):
             bot.send_message(chat_id, f"🎉 Parabéns, a palavra era *{jogo['palavra'].upper()}*!")
             finalizar_rodada(chat_id)
 
