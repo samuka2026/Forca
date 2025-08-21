@@ -79,7 +79,7 @@ def enviar_mensagem(chat_id, texto, markup=None):
 def enviar_balao_atualizado(chat_id):
     jogo = jogos_ativos[chat_id]
     texto = f"🎯 *Desafio em Andamento!*\n\n"
-    texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n"
+    texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_descobertas'])}\n"
     texto += f"💡 Dica: {jogo['dica']}\n"
     texto += f"💣 Tentativas:\n"
     for nome, rest in jogo['tentativas'].items():
