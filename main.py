@@ -150,7 +150,6 @@ def finalizar_rodada(chat_id):
     enviar_mensagem(chat_id, texto, markup)
     del jogos_ativos[chat_id]
 
-# ✅ INICIAR NOVO JOGO
 def iniciar_rodada(chat_id):
     palavra, dica = escolher_palavra()
     dados = {
@@ -158,9 +157,9 @@ def iniciar_rodada(chat_id):
         "dica": dica,
         "letras_certas": [],
         "letras_erradas": [],
-        "tentativas": {},         # nome: tentativas restantes
-        "acertos": {},            # nome: letras certas
-        "erros": {},              # nome: letras/ palavras erradas
+        "tentativas": {},
+        "acertos": {},
+        "erros": {},
         "inicio": datetime.now()
     }
     jogos_ativos[chat_id] = dados
@@ -173,11 +172,9 @@ def iniciar_rodada(chat_id):
 
     enviar_mensagem(chat_id, texto)
 
-    def finalizar_depois():
-        time.sleep(TEMPO_ENTRE_RODADAS)
-        if chat_id in jogos_ativos:
-            finalizar_rodada(chat_id)
-    threading.Thread(target=finalizar_depois, daemon=True).start()
+    # ⏳ Usando Timer para finalizar rodada de forma confiável
+    t = threading.Timer(TEMPO_ENTRE_RODADAS, lambda: finalizar_rodada(chat_id) if chat_id in jogos_ativos else None)
+    t.start()
 
 # ✅ RECEBE COMANDO /forca
 @bot.message_handler(commands=["forca"])
