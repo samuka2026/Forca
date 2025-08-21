@@ -189,7 +189,6 @@ def forca_handler(message):
 
     iniciar_rodada(chat_id)
 
-# ✅ TRATA LETRAS E PALAVRAS DIGITADAS
 @bot.message_handler(func=lambda m: True)
 def letras_handler(message):
     chat_id = message.chat.id
@@ -210,7 +209,7 @@ def letras_handler(message):
         enviar_balao_atualizado(chat_id)
         return
 
-    # 🎯 Tentativa de palavra inteira
+    # Tentativa de palavra inteira
     if len(texto) > 1 and texto.isalpha():
         if texto == jogo["palavra"]:
             bot.send_message(chat_id, f"🎉 {nome} adivinhou a palavra inteira *{texto.upper()}*! (+2 pontos)")
@@ -223,22 +222,22 @@ def letras_handler(message):
             enviar_balao_atualizado(chat_id)
         return
 
-    # 🔠 Tentativa de letra única
+    # Tentativa de letra única
     if len(texto) == 1 and texto.isalpha():
         letra = texto[0]
 
         # Se letra já usada
-        if letra in jogo["letras_descobertas"] or letra in jogo["letras_erradas"]:
+        if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
             bot.send_message(chat_id, f"⚠️ {nome}, essa letra já foi escolhida.")
             return
 
         if letra in jogo["palavra"]:
-            jogo["letras_descobertas"].add(letra)
+            jogo["letras_certas"].append(letra)
             jogo["acertos"].setdefault(nome, []).append(letra)
             pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
             bot.send_message(chat_id, f"✅ Boa, {nome}! A letra *{letra.upper()}* está na palavra! (+1 ponto)")
         else:
-            jogo["letras_erradas"].add(letra)
+            jogo["letras_erradas"].append(letra)
             jogo["tentativas"][nome] -= 1
             jogo["erros"].setdefault(nome, []).append(letra)
             bot.send_message(chat_id, f"❌ {nome}, a letra *{letra.upper()}* não existe. Perdeu uma tentativa.")
@@ -247,7 +246,7 @@ def letras_handler(message):
         enviar_balao_atualizado(chat_id)
 
         # Verifica se todas as letras foram descobertas
-        if set(jogo["palavra"]).issubset(jogo["letras_descobertas"]):
+        if set(jogo["palavra"]).issubset(set(jogo["letras_certas"])):
             bot.send_message(chat_id, f"🎉 Parabéns, a palavra era *{jogo['palavra'].upper()}*!")
             finalizar_rodada(chat_id)
 
