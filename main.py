@@ -81,9 +81,11 @@ def enviar_balao_atualizado(chat_id):
     texto = f"🎯 *Desafio em Andamento!*\n\n"
     texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_descobertas'])}\n"
     texto += f"💡 Dica: {jogo['dica']}\n"
-    texto += f"💣 Tentativas:\n"
+    texto += f"💣 Tentativas restantes:\n"
     for nome, rest in jogo['tentativas'].items():
-        texto += f"- {nome}: {rest} restantes\n"
+        # Mostrar também as letras erradas do jogador
+        letras_erradas = ', '.join(jogo['erros'].get(nome, [])).upper() if jogo['erros'].get(nome) else "nenhuma"
+        texto += f"- {nome}: {rest} restantes — Letras erradas: {letras_erradas}\n"
 
     enviar_mensagem(chat_id, texto)
 
