@@ -53,17 +53,17 @@ def escolher_palavra():
 
 def formatar_palavra(palavra, certas):
     """
-    Formata a palavra para exibição no balão, com espaços e emojis.
-    Letras certas aparecem, as outras ficam como "•".
+    Mostra a palavra com quadrados pretos.
+    Letras acertadas substituem o quadrado.
     """
     exibicao = ''
     for letra in palavra:
-        if letra in certas:
-            exibicao += f'🟩 {letra.upper()} '  # letra acertada em verde
-        elif letra == ' ':
+        if letra == ' ':
             exibicao += '   '  # mantém espaço entre palavras
+        elif letra in certas:
+            exibicao += f'{letra.upper()} '  # letra acertada
         else:
-            exibicao += '⬛ • '  # letra não acertada como bloco preto
+            exibicao += '⬛ '  # quadrado preto para letras não acertadas
     return exibicao.strip()
 
 def gerar_ranking():
