@@ -55,12 +55,15 @@ def formatar_palavra(palavra, certas):
     """
     Mostra a palavra com quadrados pretos.
     Letras acertadas substituem o quadrado.
+    Hífens e espaços já aparecem.
     """
     exibicao = ''
     for letra in palavra:
         if letra == ' ':
             exibicao += '   '  # mantém espaço entre palavras
-        elif letra in certas:
+        elif letra == '-':
+            exibicao += '- '   # já mostra hífen
+        elif letra.lower() in certas:
             exibicao += f'{letra.upper()} '  # letra acertada
         else:
             exibicao += '⬛ '  # quadrado preto para letras não acertadas
@@ -217,23 +220,25 @@ def letras_handler(message):
         return
 
     # ✅ Tentativa de PALAVRA inteira
-    if len(texto) > 1:
-        if texto == jogo["palavra"]:
-            # Jogador acertou a palavra completa
-            jogo["letras_certas"] = list(set(jogo["palavra"]))  # revela todas as letras
-            jogo["acertos"].setdefault(nome, []).append(f"PALAVRA ({texto.upper()})")
-            pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 5  # vale mais pontos
-            bot.send_message(chat_id, f"🏆 {nome} acertou a *PALAVRA INTEIRA*! +5 pontos 🎉")
-            finalizar_rodada(chat_id)  # encerra rodada imediatamente
-            return
-        else:
-            jogo["tentativas"][nome] -= 1
-            jogo["erros"].setdefault(nome, []).append(f"PALAVRA ({texto.upper()})")
-            bot.send_message(chat_id, f"💀 {nome} errou a palavra *{texto.upper()}*!")
-            enviar_balao_atualizado(chat_id)
-            if all(t <= 0 for t in jogo["tentativas"].values()):
-                finalizar_rodada(chat_id)
-            return
+    def normalizar_palavra(p):
+        return p.lower().replace(" ", "").replace("-", "").strip()
+
+    if normalizar_palavra(texto) == normalizar_palavra(jogo["palavra"]):
+        # Jogador acertou a palavra completa
+        jogo["letras_certas"] = list(set(jogo["palavra"]))  # revela todas as letras
+        jogo["acertos"].setdefault(nome, []).append(f"PALAVRA ({texto.upper()})")
+        pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 5  # vale mais pontos
+        bot.send_message(chat_id, f"🏆 {nome} acertou a *PALAVRA INTEIRA*! +5 pontos 🎉")
+        finalizar_rodada(chat_id)  # encerra rodada imediatamente
+        return
+    else:
+        jogo["tentativas"][nome] -= 1
+        jogo["erros"].setdefault(nome, []).append(f"PALAVRA ({texto.upper()})")
+        bot.send_message(chat_id, f"💀 {nome} errou a palavra *{texto.upper()}*!")
+        enviar_balao_atualizado(chat_id)
+        if all(t <= 0 for t in jogo["tentativas"].values()):
+            finalizar_rodada(chat_id)
+        return
 
     # ✅ Tentativa de LETRA única
     letra = texto[0]
