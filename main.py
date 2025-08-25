@@ -207,9 +207,9 @@ def letras_handler(message):
     nome = message.from_user.first_name
     jogo = jogos_ativos[chat_id]
 
-    # Se o jogador ainda não tem tentativas, inicia com 3
+    # Se o jogador ainda não tem tentativas, inicia com 5
     if nome not in jogo["tentativas"]:
-        jogo["tentativas"][nome] = 3
+        jogo["tentativas"][nome] = 5
 
     if jogo["tentativas"][nome] <= 0:
         bot.send_message(chat_id, f"❌ {nome}, você esgotou suas tentativas!")
