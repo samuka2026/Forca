@@ -52,12 +52,18 @@ def escolher_palavra():
     return escolha_dict["palavra"].lower(), escolha_dict["dica"]
 
 def formatar_palavra(palavra, certas):
+    """
+    Formata a palavra para exibição no balão, com espaços e emojis.
+    Letras certas aparecem, as outras ficam como "•".
+    """
     exibicao = ''
     for letra in palavra:
         if letra in certas:
-            exibicao += f'{letra.upper()} '
+            exibicao += f'🟩 {letra.upper()} '  # letra acertada em verde
+        elif letra == ' ':
+            exibicao += '   '  # mantém espaço entre palavras
         else:
-            exibicao += '• '
+            exibicao += '⬛ • '  # letra não acertada como bloco preto
     return exibicao.strip()
 
 def gerar_ranking():
@@ -79,12 +85,12 @@ def enviar_mensagem(chat_id, texto, markup=None):
 
 def enviar_balao_atualizado(chat_id):
     jogo = jogos_ativos[chat_id]
-    texto = f"🎯 *Desafio em Andamento!*\n\n"
-    texto += f"🔠 Palavra:\n{formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n"
-    texto += f"💡 Dica: {jogo['dica']}\n"
-    texto += f"💣 Tentativas:\n"
+    texto = f"🎯 *DESAFIO EM ANDAMENTO!*\n\n"
+    texto += f"🔠 *PALAVRA:*\n{formatar_palavra(jogo['palavra'], jogo['letras_certas'])}\n\n"
+    texto += f"💡 *DICA:* {jogo['dica'].upper()}\n\n"
+    texto += "💣 *TENTATIVAS RESTANTES:*\n"
     for nome, rest in jogo['tentativas'].items():
-        texto += f"- {nome}: {rest} restantes\n"
+        texto += f"👤 {nome}: {rest} tentativa(s)\n"
 
     enviar_mensagem(chat_id, texto)
 
