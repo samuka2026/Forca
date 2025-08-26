@@ -194,12 +194,11 @@ def forca_handler(message):
 
     iniciar_rodada(chat_id)
 
-# ✅ TRATAMENTO DE LETRAS E PALAVRAS
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def letras_handler(message):
     chat_id = message.chat.id
     texto = message.text.strip()
-
+    
     # 🔹 Se não houver jogo ativo, ignora
     if chat_id not in jogos_ativos:
         return
@@ -207,13 +206,17 @@ def letras_handler(message):
     jogo = jogos_ativos[chat_id]
     jogador = message.from_user.first_name
 
-    # 🔹 Se digitar //forca → encerra manualmente
+    # 🔹 Inicializa tentativas do jogador se não existir
+    if jogador not in jogo["tentativas"]:
+        jogo["tentativas"][jogador] = 6  # define número de tentativas
+
+    # 🔹 Encerramento manual
     if texto.lower() == "//forca":
         finalizar_rodada(chat_id)
         enviar_mensagem(chat_id, "⏹️ O jogo foi encerrado manualmente pelo administrador.")
         return
 
-    # 🔹 Se for palavra inteira (começa com / ou !)
+    # 🔹 Tentativa de palavra inteira (/ ou !)
     if texto.startswith("/") or texto.startswith("!"):
         tentativa_palavra = texto[1:].lower()
         if tentativa_palavra == jogo["palavra"]:
@@ -223,11 +226,14 @@ def letras_handler(message):
             finalizar_rodada(chat_id)
         else:
             enviar_mensagem(chat_id, f"❌ {jogador} tentou a palavra '{tentativa_palavra}' e errou.")
+            jogo["tentativas"][jogador] -= 1
+        enviar_balao_atualizado(chat_id)
         return
 
-    # 🔹 Se for apenas uma letra
+    # 🔹 Tentativa de letra
     if len(texto) == 1 and texto.isalpha():
         letra = texto.lower()
+
         if letra in jogo["palavra"]:
             if letra not in jogo["letras_certas"]:
                 jogo["letras_certas"].append(letra)
@@ -240,14 +246,15 @@ def letras_handler(message):
             if letra not in jogo["letras_erradas"]:
                 jogo["letras_erradas"].append(letra)
                 enviar_mensagem(chat_id, f"❌ A letra '{letra.upper()}' não está na palavra.")
+                jogo["tentativas"][jogador] -= 1
 
-        # Atualiza o balão da forca
         enviar_balao_atualizado(chat_id)
 
-        # Se todas as letras foram descobertas → finaliza rodada
+        # 🔹 Checa se todas as letras foram descobertas
         if all(l in jogo["letras_certas"] for l in jogo["palavra"] if l.isalpha()):
-            enviar_mensagem(chat_id, "🎉 Todas as letras foram descobertas! Parabéns!")
+            enviar_mensagem(chat_id, f"🎉 Todas as letras foram descobertas! {jogador} concluiu a palavra!")
             finalizar_rodada(chat_id)
+        return
 
 # ✅ BOTÃO DE NOVO DESAFIO
 @bot.callback_query_handler(func=lambda call: call.data == "novo_desafio")
