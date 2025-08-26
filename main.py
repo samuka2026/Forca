@@ -116,36 +116,36 @@ def apagar_baloes_antigos(chat_id, manter=1):
 
 def finalizar_rodada(chat_id):
     jogo = jogos_ativos[chat_id]
-    palavra = jogo['palavra']
-    acertos = jogo['acertos']
-    erros = jogo['erros']
-    ranking = gerar_ranking()
 
-    texto = f"📢 *Fim da Rodada!*\n\n✅ Palavra: *{palavra.upper()}*\n"
+    # cancela o timer se ainda existir
+    if jogo.get("timer"):
+        jogo["timer"].cancel()
 
-    if acertos:
-        texto += "\n👑 Vencedores:\n"
-        for nome, letras in acertos.items():
-            pontos = pontuacao_diaria.get(nome, 0)
-            texto += f"- {nome} (+1 ponto) — Letras: {', '.join(letras).upper()} — Total: {pontos + 0} ponto(s)\n"
+    palavra = jogo["palavra"]
+    dica = jogo["dica"]
+
+    texto = f"🏁 *Fim da Rodada!*\n\n"
+    texto += f"✅ Palavra correta: *{palavra}*\n"
+    texto += f"💡 Dica: {dica}\n\n"
+
+    if jogo["acertos"]:
+        texto += "🏆 Pontuação:\n"
+        for nome, pontos in jogo["acertos"].items():
+            texto += f"⭐ {nome}: {pontos} ponto(s)\n"
     else:
-        texto += "\n💔 Ninguém acertou letras.\n"
+        texto += "⚠️ Ninguém acertou nesta rodada.\n"
 
-    if erros:
-        texto += "\n❌ Erraram:\n"
-        for nome, letras in erros.items():
-            texto += f"- {nome} — Letras erradas: {', '.join(letras).upper()}\n"
+    botoes = {
+        "inline_keyboard": [
+            [{"text": "🔁 Novo Desafio", "callback_data": "novo_desafio"}]
+        ]
+    }
 
-    texto += ranking
+    enviar_mensagem(chat_id, texto, botoes)
 
-    # Botão "Novo Desafio"
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("🔁 Novo Desafio", callback_data="novo_desafio"))
-
-    enviar_mensagem(chat_id, texto, markup)
+    # remove o jogo da memória
     del jogos_ativos[chat_id]
 
-# ✅ INICIAR NOVO JOGO
 def iniciar_rodada(chat_id):
     palavra, dica = escolher_palavra()
     dados = {
@@ -153,11 +153,17 @@ def iniciar_rodada(chat_id):
         "dica": dica,
         "letras_certas": [],
         "letras_erradas": [],
-        "tentativas": {},         # nome: tentativas restantes
-        "acertos": {},            # nome: letras certas
-        "erros": {},              # nome: letras erradas
-        "inicio": datetime.now()
+        "tentativas": {},
+        "acertos": {},
+        "erros": {},
+        "inicio": datetime.now(),
+        "timer": None  # 🔴 espaço para salvar o Timer
     }
+
+    # se já existe jogo ativo, cancela o timer antigo
+    if chat_id in jogos_ativos and jogos_ativos[chat_id].get("timer"):
+        jogos_ativos[chat_id]["timer"].cancel()
+
     jogos_ativos[chat_id] = dados
 
     texto = f"🪢 *Jogo da Forca Iniciado!*\n\n"
@@ -165,15 +171,7 @@ def iniciar_rodada(chat_id):
     texto += f"💡 Dica: {dica}\n"
     texto += f"🎯 Envie uma *letra* ou a *palavra inteira* para tentar!"
     ultimo_jogo_timestamp[chat_id] = datetime.now()
-
     enviar_mensagem(chat_id, texto)
-
-    # ⏳ Thread que finaliza automaticamente após TEMPO_ENTRE_RODADAS
-    def finalizar_depois():
-        time.sleep(TEMPO_ENTRE_RODADAS)
-        if chat_id in jogos_ativos:
-            finalizar_rodada(chat_id)
-    threading.Thread(target=finalizar_depois, daemon=True).start()
 
 # ✅ RECEBE COMANDO /forca
 @bot.message_handler(commands=["forca"])
@@ -196,68 +194,60 @@ def forca_handler(message):
 
     iniciar_rodada(chat_id)
 
-@bot.message_handler(func=lambda m: True)
+# ✅ TRATAMENTO DE LETRAS E PALAVRAS
+@bot.message_handler(func=lambda m: True, content_types=["text"])
 def letras_handler(message):
     chat_id = message.chat.id
+    texto = message.text.strip()
+
+    # 🔹 Se não houver jogo ativo, ignora
     if chat_id not in jogos_ativos:
         return
 
-    texto = message.text.strip().lower()
-    if not texto:
-        return
-
-    nome = message.from_user.first_name
     jogo = jogos_ativos[chat_id]
+    jogador = message.from_user.first_name
 
-    # Se o jogador ainda não tem tentativas, inicia com 5
-    if nome not in jogo["tentativas"]:
-        jogo["tentativas"][nome] = 5
-
-    if jogo["tentativas"][nome] <= 0:
-        bot.send_message(chat_id, f"❌ {nome}, você esgotou suas tentativas!")
-        enviar_balao_atualizado(chat_id)
+    # 🔹 Se digitar //forca → encerra manualmente
+    if texto.lower() == "//forca":
+        finalizar_rodada(chat_id)
+        enviar_mensagem(chat_id, "⏹️ O jogo foi encerrado manualmente pelo administrador.")
         return
 
-    # Função para normalizar palavras (remover espaços e hífens)
-    def normalizar(p):
-        return p.lower().replace(" ", "").replace("-", "")
-
-    # ✅ Tentativa de PALAVRA inteira (só se começar com / ou !)
+    # 🔹 Se for palavra inteira (começa com / ou !)
     if texto.startswith("/") or texto.startswith("!"):
-        tentativa_palavra = texto[1:]  # remove o símbolo
-        if normalizar(tentativa_palavra) == normalizar(jogo["palavra"]):
-            # Jogador acertou a palavra completa
-            jogo["letras_certas"] = list(set(jogo["palavra"]))  # revela todas as letras
-            jogo["acertos"].setdefault(nome, []).append(f"PALAVRA ({tentativa_palavra.upper()})")
-            pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 5
-            bot.send_message(chat_id, f"🏆 {nome} acertou a *PALAVRA INTEIRA*! +5 pontos 🎉")
+        tentativa_palavra = texto[1:].lower()
+        if tentativa_palavra == jogo["palavra"]:
+            enviar_mensagem(chat_id, f"🎉 {jogador} acertou a palavra inteira!")
+            jogo["acertos"][jogador] = jogo["acertos"].get(jogador, 0) + 3
+            pontuacao_diaria[jogador] = pontuacao_diaria.get(jogador, 0) + 3
             finalizar_rodada(chat_id)
-            return
         else:
-            jogo["tentativas"][nome] -= 1
-            jogo["erros"].setdefault(nome, []).append(f"PALAVRA ({tentativa_palavra.upper()})")
-            bot.send_message(chat_id, f"💀 {nome} errou a palavra *{tentativa_palavra.upper()}*!")
+            enviar_mensagem(chat_id, f"❌ {jogador} tentou a palavra '{tentativa_palavra}' e errou.")
+        return
 
-    # ✅ Tentativa de LETRA única
-    elif len(texto) == 1:
-        letra = texto[0]
-        if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
-            bot.send_message(chat_id, f"⚠️ A letra *{letra.upper()}* já foi enviada.")
-            return
-
+    # 🔹 Se for apenas uma letra
+    if len(texto) == 1 and texto.isalpha():
+        letra = texto.lower()
         if letra in jogo["palavra"]:
-            jogo["letras_certas"].append(letra)
-            jogo["acertos"].setdefault(nome, []).append(letra)
-            pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
-            bot.send_message(chat_id, f"✅ {nome} acertou a letra *{letra.upper()}*!")
+            if letra not in jogo["letras_certas"]:
+                jogo["letras_certas"].append(letra)
+                enviar_mensagem(chat_id, f"✅ A letra '{letra.upper()}' está na palavra!")
+                jogo["acertos"][jogador] = jogo["acertos"].get(jogador, 0) + 1
+                pontuacao_diaria[jogador] = pontuacao_diaria.get(jogador, 0) + 1
+            else:
+                enviar_mensagem(chat_id, f"⚠️ A letra '{letra.upper()}' já foi escolhida.")
         else:
-            jogo["letras_erradas"].append(letra)
-            jogo["tentativas"][nome] -= 1
-            jogo["erros"].setdefault(nome, []).append(letra)
-            bot.send_message(chat_id, f"❌ {nome} errou a letra *{letra.upper()}*!")
+            if letra not in jogo["letras_erradas"]:
+                jogo["letras_erradas"].append(letra)
+                enviar_mensagem(chat_id, f"❌ A letra '{letra.upper()}' não está na palavra.")
 
-    # Atualiza o balão de status
-    enviar_balao_atualizado(chat_id)
+        # Atualiza o balão da forca
+        enviar_balao_atualizado(chat_id)
+
+        # Se todas as letras foram descobertas → finaliza rodada
+        if all(l in jogo["letras_certas"] for l in jogo["palavra"] if l.isalpha()):
+            enviar_mensagem(chat_id, "🎉 Todas as letras foram descobertas! Parabéns!")
+            finalizar_rodada(chat_id)
 
 # ✅ BOTÃO DE NOVO DESAFIO
 @bot.callback_query_handler(func=lambda call: call.data == "novo_desafio")
