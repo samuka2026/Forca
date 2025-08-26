@@ -257,10 +257,6 @@ def letras_handler(message):
 
         enviar_balao_atualizado(chat_id)
 
-    # Finaliza rodada se todos zeraram tentativas
-    if all(t <= 0 for t in jogo["tentativas"].values()):
-        finalizar_rodada(chat_id)
-
 # ✅ BOTÃO DE NOVO DESAFIO
 @bot.callback_query_handler(func=lambda call: call.data == "novo_desafio")
 def callback_novo(call):
