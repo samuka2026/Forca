@@ -19,7 +19,7 @@ bot = telebot.TeleBot(API_TOKEN)
 app = Flask(__name__)
 
 # ✅ PARÂMETROS DO JOGO
-TEMPO_ENTRE_RODADAS = 300  # 5 minutos
+TEMPO_ENTRE_RODADAS = 600  # 10 minutos
 HORARIO_RANKING_FINAL = "23:30"
 
 # ✅ VARIÁVEIS DE CONTROLE
