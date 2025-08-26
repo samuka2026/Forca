@@ -237,24 +237,25 @@ def letras_handler(message):
             jogo["erros"].setdefault(nome, []).append(f"PALAVRA ({texto.upper()})")
             bot.send_message(chat_id, f"💀 {nome} errou a palavra *{texto.upper()}*!")
 
-    # ✅ Tentativa de LETRA única
-    letra = texto[0]
-    if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
-        bot.send_message(chat_id, f"⚠️ A letra *{letra.upper()}* já foi enviada.")
-        return
+    # Tentativa de LETRA única
+    if len(texto) == 1:
+        letra = texto[0]
+        if letra in jogo["letras_certas"] or letra in jogo["letras_erradas"]:
+            bot.send_message(chat_id, f"⚠️ A letra *{letra.upper()}* já foi enviada.")
+            return
 
-    if letra in jogo["palavra"]:
-        jogo["letras_certas"].append(letra)
-        jogo["acertos"].setdefault(nome, []).append(letra)
-        pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
-        bot.send_message(chat_id, f"✅ {nome} acertou a letra *{letra.upper()}*!")
-    else:
-        jogo["letras_erradas"].append(letra)
-        jogo["tentativas"][nome] -= 1
-        jogo["erros"].setdefault(nome, []).append(letra)
-        bot.send_message(chat_id, f"❌ {nome} errou a letra *{letra.upper()}*!")
+        if letra in jogo["palavra"]:
+            jogo["letras_certas"].append(letra)
+            jogo["acertos"].setdefault(nome, []).append(letra)
+            pontuacao_diaria[nome] = pontuacao_diaria.get(nome, 0) + 1
+            bot.send_message(chat_id, f"✅ {nome} acertou a letra *{letra.upper()}*!")
+        else:
+            jogo["letras_erradas"].append(letra)
+            jogo["tentativas"][nome] -= 1
+            jogo["erros"].setdefault(nome, []).append(letra)
+            bot.send_message(chat_id, f"❌ {nome} errou a letra *{letra.upper()}*!")
 
-    enviar_balao_atualizado(chat_id)
+        enviar_balao_atualizado(chat_id)
 
     # Finaliza rodada se todos zeraram tentativas
     if all(t <= 0 for t in jogo["tentativas"].values()):
